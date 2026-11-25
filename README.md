@@ -1,50 +1,48 @@
-# Java REST Web Service Example
+# Java Todo REST Service
 
-This program uses Java's built-in `HttpClient` to call the public
-[JSONPlaceholder](https://jsonplaceholder.typicode.com/) REST API and retrieve a
-todo item.
-
-## Requirements
-
-- Java 11 or newer
-- Internet access
+A dependency-free todo REST API and command-line client using Java 11 or newer.
+The service stores todos in memory and starts with three example items; data
+resets when the service restarts.
 
 ## Run
 
-From this directory:
+Open a terminal in this directory and start the service:
 
 ```text
-javac TodoClient.java
+javac TodoServer.java TodoClient.java
+java TodoServer
+```
+
+The service listens at `http://localhost:8080`. In another terminal, retrieve a
+todo with the client:
+
+```text
 java TodoClient
+java TodoClient 2
 ```
 
-The default request retrieves todo `1`. To retrieve another item, pass an ID
-from `1` through `200`:
+## API
+
+Response bodies use JSON (the `204 No Content` response has no body). Create and
+replace requests require the
+`Content-Type: application/json` header and a JSON object with a string `title`
+and boolean `completed`. Titles must contain 1 to 200 non-whitespace characters.
+
+| Method | Path | Description | Success |
+|---|---|---|---|
+| `GET` | `/todos` | List all todos | `200 OK` |
+| `GET` | `/todos/{id}` | Retrieve a todo | `200 OK` |
+| `POST` | `/todos` | Create a todo | `201 Created` |
+| `PUT` | `/todos/{id}` | Replace a todo | `200 OK` |
+| `DELETE` | `/todos/{id}` | Delete a todo | `204 No Content` |
+
+Example:
 
 ```text
-java TodoClient <todo-id>
+curl -i http://localhost:8080/todos/1
+curl -i -X POST http://localhost:8080/todos -H "Content-Type: application/json" -d "{\"title\":\"Read the docs\",\"completed\":false}"
 ```
 
-For example:
-
-```text
-java TodoClient 42
-```
-
-The program sends a `GET` request to:
-
-```text
-https://jsonplaceholder.typicode.com/todos/42
-```
-
-and prints the todo title and completion status. It also reports invalid input,
-network failures, interrupted requests, and non-success HTTP responses.
-
-
-
-cd "C:\Users\vladk\OneDrive\Desktop\Homework 11"
-javac TodoClient.java
-java TodoClient
-
-
-java TodoClient 42
+Missing todos return `404`; invalid JSON returns `400`. Choose another listening
+port by passing it to the server, for example `java TodoServer 9090`. The client
+uses port 8080 by default.

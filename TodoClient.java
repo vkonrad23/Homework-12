@@ -8,16 +8,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * A small REST client that retrieves a todo item from JSONPlaceholder.
+ * A small REST client that retrieves a todo item from the local Todo service.
  *
  * Usage:
  *   javac TodoClient.java
  *   java TodoClient 1
  */
 public class TodoClient {
-    private static final String API_URL = "https://jsonplaceholder.typicode.com/todos/";
+    private static final String API_URL = "http://localhost:8080/todos/";
     private static final Pattern TITLE_PATTERN =
-            Pattern.compile("\"title\"\\s*:\\s*\"([^\"]*)\"");
+            Pattern.compile("\"title\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"");
     private static final Pattern COMPLETED_PATTERN =
             Pattern.compile("\"completed\"\\s*:\\s*(true|false)");
 
@@ -35,7 +35,7 @@ public class TodoClient {
         try {
             String json = getTodo(todoId);
             System.out.println("Todo #" + todoId);
-            System.out.println("Title: " + extract(json, TITLE_PATTERN, "title"));
+            System.out.println("Title: " + decodeJsonString(extract(json, TITLE_PATTERN, "title")));
             System.out.println("Completed: " + extract(json, COMPLETED_PATTERN, "completed"));
         } catch (IOException exception) {
             System.err.println("Network error: " + exception.getMessage());
@@ -57,8 +57,8 @@ public class TodoClient {
 
         try {
             int id = Integer.parseInt(args[0]);
-            if (id < 1 || id > 200) {
-                throw new IllegalArgumentException("Todo ID must be between 1 and 200.");
+            if (id < 1) {
+                throw new IllegalArgumentException("Todo ID must be a positive number.");
             }
             return id;
         } catch (NumberFormatException exception) {
@@ -91,5 +91,46 @@ public class TodoClient {
             throw new IllegalStateException("Response did not contain a '" + fieldName + "' field.");
         }
         return matcher.group(1);
+    }
+
+    private static String decodeJsonString(String value) {
+        StringBuilder decoded = new StringBuilder();
+        for (int index = 0; index < value.length(); index++) {
+            char character = value.charAt(index);
+            if (character != '\\') {
+                decoded.append(character);
+                continue;
+            }
+            char escape = value.charAt(++index);
+            switch (escape) {
+                case '"':
+                case '\\':
+                case '/':
+                    decoded.append(escape);
+                    break;
+                case 'b':
+                    decoded.append('\b');
+                    break;
+                case 'f':
+                    decoded.append('\f');
+                    break;
+                case 'n':
+                    decoded.append('\n');
+                    break;
+                case 'r':
+                    decoded.append('\r');
+                    break;
+                case 't':
+                    decoded.append('\t');
+                    break;
+                case 'u':
+                    decoded.append((char) Integer.parseInt(value.substring(index + 1, index + 5), 16));
+                    index += 4;
+                    break;
+                default:
+                    throw new IllegalStateException("Response contained invalid JSON escaping.");
+            }
+        }
+        return decoded.toString();
     }
 }
